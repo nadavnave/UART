@@ -1,3 +1,4 @@
+`include "clog2.vh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -25,7 +26,7 @@
 //                  state
 //////////////////////////////////////////////////////////////////////////////////
 module UART_RX #(
-    parameter P_REG_MODE_TH
+    parameter P_REG_MODE_TH = 160
 )(
     input serial_in,
     input x16_BAUD,
@@ -34,7 +35,7 @@ module UART_RX #(
     output reg valid,
     output reg error
 );
-    localparam LP_COUNTER_WIDTH = clog(P_REG_MODE_TH);
+    localparam LP_COUNTER_WIDTH = clog2(P_REG_MODE_TH);
     localparam LP_STATE_WIDTH   = 4; 
     localparam LP_BIT_TIME      = 16;
     localparam LP_HALF_BIT_TIME = 8;
@@ -42,7 +43,7 @@ module UART_RX #(
     localparam S_WAIT       = 0;
     localparam S_REG_MODE   = 1;
     localparam S_START_BIT  = 2;
-    localparam S_DO         = 3;
+    localparam S_D0         = 3;
     localparam S_D1         = 4;
     localparam S_D2         = 5;
     localparam S_D3         = 6;
@@ -54,12 +55,12 @@ module UART_RX #(
     localparam S_COMPLETE   = 12;
     localparam S_ERROR      = 13;
     
-    reg [LP_COUNTER_WIDTH -1 : 0] counter;
+    reg [LP_COUNTER_WIDTH - 1 : 0] counter;
     reg [LP_STATE_WIDTH - 1: 0] global_state;
 
     // FSM next step
     always @(posedge x16_BAUD) begin
-        case(global_state) begin
+        case(global_state) 
             S_WAIT:
             begin
                 if(serial_in) begin
@@ -101,7 +102,7 @@ module UART_RX #(
                     counter <= counter + 1;
                 end
             end
-            S_DO:
+            S_D0:
             begin
                 if( counter == LP_BIT_TIME -1) begin
                     global_state <= S_D1;
@@ -237,7 +238,7 @@ module UART_RX #(
     end
     // FSM output
     always @(posedge x16_BAUD) begin
-        case(global_state) begin
+        case(global_state) 
             S_WAIT:
             begin
                 valid <= 0;
@@ -253,7 +254,7 @@ module UART_RX #(
                 valid <= 0;
                 error <= 0;
             end
-            S_DO:
+            S_D0:
             begin
                 valid <= 0;
                 error <= 0;
