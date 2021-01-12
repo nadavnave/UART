@@ -25,7 +25,7 @@
 module UART_RX_tb;
 	// Localparameters
 	localparam LP_X16_BAUD_CYCLE = 10;
-	
+        localparam LP_BIT_CYCLE = 160;	
 	// Inputs
 	reg serial_in;
 	reg x16_BAUD;
@@ -36,6 +36,23 @@ module UART_RX_tb;
 	wire valid;
 	wire error;
 
+        task send;
+            input [7:0] byte;
+            integer i = 0;
+            begin
+                // Start bit 
+                serial_in = 0;
+                #LP_BIT_CYCLE;
+                // DATA
+                for ( i = 0; i < 8 ; i = i + 1) begin
+                         serial_in = byte[i];
+                         #LP_BIT_CYCLE;
+                end
+                // Stop bit
+                serial_in = 1;
+                #LP_BIT_CYCLE;
+            end
+        endtask
 	// Instantiate the Unit Under Test (UUT)
 	UART_RX #(
 		.P_REG_MODE_TH(160)
@@ -55,10 +72,13 @@ module UART_RX_tb;
 		reset = 0;
 
 		// Wait 100 ns for global reset to finish
-		#100;
-        
+		#50;
+                 
 		// Add stimulus here
-
+                serial_in = 1;
+                #(10*200);
+                send(8'b10100110);
+                $finish();
 	end
 	
 	always begin
