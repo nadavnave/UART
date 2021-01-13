@@ -31,6 +31,7 @@ module UART_RX #(
     input serial_in,
     input x16_BAUD,
     input reset,
+    input CLK,
     output reg [7:0] Do,
     output reg valid,
     output reg error
@@ -59,142 +60,170 @@ module UART_RX #(
     reg [LP_STATE_WIDTH - 1: 0] global_state;
 
     // FSM next step
-    always @(posedge x16_BAUD) begin
-        case(global_state) 
-            S_WAIT:
-            begin
-                if(serial_in) begin
-                    if(counter == P_REG_MODE_TH) begin
-                        global_state <= S_REG_MODE;
+    always @(negedge CLK) begin
+        if (x16_BAUD) begin
+            case(global_state) 
+                S_WAIT:
+                begin
+                    if(serial_in) begin
+                        if(counter == P_REG_MODE_TH) begin
+                            global_state <= S_REG_MODE;
+                            counter <= 0;
+                        end
+                        else begin 
+                            global_state <= S_WAIT;
+                            counter <= counter + 1;
+                        end
+                    end
+                    else begin
+                        global_state <= S_WAIT;
                         counter <= 0;
                     end
-                    else begin 
-                        global_state <= S_WAIT;
+                end
+                S_REG_MODE:
+                begin
+                    if (~serial_in) begin
+                        global_state <= S_START_BIT;
+                        counter <= 0;
+                    end
+                end
+                S_START_BIT:
+                begin
+                    if ( counter == LP_HALF_BIT_TIME - 1) begin
+                        if( serial_in) begin
+                            global_state <= S_ERROR;
+                            counter <= 0;
+                        end
+                        else begin
+                            global_state <= S_D0;
+                            counter <= 0;
+                        end
+                    end
+                    else begin
+                        global_state <= S_START_BIT;
                         counter <= counter + 1;
                     end
                 end
-                else begin
-                    global_state <= S_WAIT;
-                    counter <= 0;
-                end
-            end
-            S_REG_MODE:
-            begin
-                if (~serial_in) begin
-                    global_state <= S_START_BIT;
-                    counter <= 0;
-                end
-            end
-            S_START_BIT:
-            begin
-                if ( counter == LP_HALF_BIT_TIME - 1) begin
-                    if( serial_in) begin
-                        global_state <= S_ERROR;
+                S_D0:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D1;
                         counter <= 0;
                     end
                     else begin
                         global_state <= S_D0;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D1:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D2;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D1;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D2:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D3;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D2;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D3:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D4;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D3;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D4:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D5;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D4;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D5:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D6;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D5;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D6:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_D7;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D6;
+                        counter <= counter + 1;
+                    end
+                end
+                S_D7:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        global_state <= S_STOP_BIT;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_D7;
+                        counter <= counter + 1;
+                    end
+                end
+                S_STOP_BIT:
+                begin
+                    if( counter == LP_BIT_TIME -1) begin
+                        if( serial_in ) begin
+                            global_state <= S_COMPLETE;
+                            counter <= 0;
+                        end
+                        else begin
+                            global_state <= S_ERROR;
+                            counter <= 0;
+                        end
+                    end
+                    else begin
+                        global_state <= S_STOP_BIT;
+                        counter <= counter + 1;
+                    end
+                end
+                S_COMPLETE:
+                begin
+                    if(serial_in) begin
+                        global_state <= S_REG_MODE;
+                        counter <= 0;
+                    end
+                    else begin
+                        global_state <= S_START_BIT;
                         counter <= 0;
                     end
                 end
-                else begin
-                    global_state <= S_START_BIT;
-                    counter <= counter + 1;
-                end
-            end
-            S_D0:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D1;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D0;
-                    counter <= counter + 1;
-                end
-            end
-            S_D1:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D2;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D1;
-                    counter <= counter + 1;
-                end
-            end
-            S_D2:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D3;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D2;
-                    counter <= counter + 1;
-                end
-            end
-            S_D3:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D4;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D3;
-                    counter <= counter + 1;
-                end
-            end
-            S_D4:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D5;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D4;
-                    counter <= counter + 1;
-                end
-            end
-            S_D5:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D6;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D5;
-                    counter <= counter + 1;
-                end
-            end
-            S_D6:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_D7;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D6;
-                    counter <= counter + 1;
-                end
-            end
-            S_D7:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    global_state <= S_STOP_BIT;
-                    counter <= 0;
-                end
-                else begin
-                    global_state = S_D7;
-                    counter <= counter + 1;
-                end
-            end
-            S_STOP_BIT:
-            begin
-                if( counter == LP_BIT_TIME -1) begin
-                    if( serial_in ) begin
-                        global_state <= S_COMPLETE;
+                S_ERROR:
+                begin
+                    if(reset) begin
+                        global_state <= S_WAIT;
                         counter <= 0;
                     end
                     else begin
@@ -202,143 +231,120 @@ module UART_RX #(
                         counter <= 0;
                     end
                 end
-                else begin
-                    global_state = S_STOP_BIT;
-                    counter <= counter + 1;
-                end
-            end
-            S_COMPLETE:
-            begin
-                if(serial_in) begin
-                    global_state <= S_REG_MODE;
-                    counter <= 0;
-                end
-                else begin
-                    global_state <= S_START_BIT;
-                    counter <= 0;
-                end
-            end
-            S_ERROR:
-            begin
-                if(reset) begin
+                default
+                begin
                     global_state <= S_WAIT;
                     counter <= 0;
                 end
-                else begin
-                    global_state <= S_ERROR;
-                    counter <= 0;
-                end
-            end
-            default
-            begin
-                global_state <= S_WAIT;
-                counter <= 0;
-            end
-        endcase
+            endcase
+        end
     end
     // FSM output
-    always @(posedge x16_BAUD) begin
-        case(global_state) 
-            S_WAIT:
-            begin
-                valid <= 0;
-                error <= 0;
-            end
-            S_REG_MODE:
-            begin
-                valid <= 0;
-                error <= 0;
-            end
-            S_START_BIT:
-            begin
-                valid <= 0;
-                error <= 0;
-            end
-            S_D0:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[0] = serial_in;
+    always @(negedge CLK) begin
+        if (x16_BAUD) begin
+            case(global_state) 
+                S_WAIT:
+                begin
+                    valid <= 0;
+                    error <= 0;
                 end
-            end
-            S_D1:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[1] = serial_in;
+                S_REG_MODE:
+                begin
+                    valid <= 0;
+                    error <= 0;
                 end
-            end
-            S_D2:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[2] = serial_in;
+                S_START_BIT:
+                begin
+                    valid <= 0;
+                    error <= 0;
                 end
-            end
-            S_D3:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[3] = serial_in;
+                S_D0:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[0] <= serial_in;
+                    end
                 end
-            end
-            S_D4:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[4] = serial_in;
+                S_D1:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[1] <= serial_in;
+                    end
                 end
-            end
-            S_D5:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[5] = serial_in;
+                S_D2:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[2] <= serial_in;
+                    end
                 end
-            end
-            S_D6:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[6] = serial_in;
+                S_D3:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[3] <= serial_in;
+                    end
                 end
-            end
-            S_D7:
-            begin
-                valid <= 0;
-                error <= 0;
-                if (counter == LP_BIT_TIME - 1) begin
-                    Do[7] = serial_in;
+                S_D4:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[4] <= serial_in;
+                    end
                 end
-            end
-            S_STOP_BIT:
-            begin
-                valid <= 0;
-                error <= 0;
-            end
-            S_COMPLETE:
-            begin
-                valid <= 1;
-                error <= 0;
-            end
-            S_ERROR:
-            begin
-                valid <= 0;
-                error <= 1;
-            end
-            default
-            begin
-                valid <= 0;
-                error <= 0;
-            end
-        endcase
+                S_D5:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[5] <= serial_in;
+                    end
+                end
+                S_D6:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[6] <= serial_in;
+                    end
+                end
+                S_D7:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                    if (counter == LP_BIT_TIME - 1) begin
+                        Do[7] <= serial_in;
+                    end
+                end
+                S_STOP_BIT:
+                begin
+                    valid <= 0;
+                    error <= 0;
+                end
+                S_COMPLETE:
+                begin
+
+                    valid <= 1;
+                    error <= 0;
+                end
+                S_ERROR:
+                begin
+                    valid <= 0;
+                    error <= 1;
+                end
+                default
+                begin
+                    valid <= 0;
+                    error <= 0;
+                end
+            endcase
+        end
     end
 
 endmodule

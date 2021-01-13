@@ -24,13 +24,14 @@
 
 module UART_RX_tb;
 	// Localparameters
-	localparam LP_X16_BAUD_CYCLE = 10;
-        localparam LP_BIT_CYCLE = 160;	
+        localparam LP_CLK_CYCLE = 10;
+	localparam LP_X16_BAUD_CYCLE = 20;
+        localparam LP_BIT_CYCLE = 16*LP_X16_BAUD_CYCLE;	
 	// Inputs
 	reg serial_in;
 	reg x16_BAUD;
 	reg reset;
-
+        reg CLK;
 	// Outputs
 	wire [7:0] Do;
 	wire valid;
@@ -57,6 +58,7 @@ module UART_RX_tb;
 	UART_RX #(
 		.P_REG_MODE_TH(160)
 	) uut (
+                .CLK(CLK),
 		.serial_in(serial_in), 
 		.x16_BAUD(x16_BAUD), 
 		.reset(reset), 
@@ -70,19 +72,31 @@ module UART_RX_tb;
 		serial_in = 0;
 		x16_BAUD = 1;
 		reset = 0;
-
+                CLK = 0;
 		// Wait 100 ns for global reset to finish
 		#50;
                  
 		// Add stimulus here
                 serial_in = 1;
-                #(10*200);
+                #(LP_X16_BAUD_CYCLE*200);
                 send(8'b10100110);
                 $finish();
 	end
-	
+        localparam LP_x16_DIV = 2;
+        integer i = 0;
+        always @(posedge CLK) begin
+            if ( i == LP_x16_DIV -1) begin
+                x16_BAUD = 1;
+                i =0;
+            end
+            else begin
+                i = i + 1;
+                x16_BAUD = 0;
+            end
+        end
 	always begin
-		#5 x16_BAUD = ~x16_BAUD;
+            #(LP_CLK_CYCLE/2) CLK  = ~CLK;
 	end
+        
 endmodule
 
