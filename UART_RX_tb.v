@@ -80,7 +80,7 @@ module UART_RX_tb;
 
 	initial begin
 		// Initialize Inputs
-                $display("Starting testbench\n");
+                $display("Starting testbench");
 		serial_in = 0;
 		x16_BAUD = 1;
 		reset = 0;
@@ -98,10 +98,10 @@ module UART_RX_tb;
                 serial_in = 1;
                 #LP_BIT_CYCLE;
                 if( error ) begin
-                    $display("Error on start bit - Pass\n");
+                    $display("Error on start bit - Pass");
                 end
                 else begin
-                    $display("Error on start bit - Failed\n");
+                    $display("Error on start bit - Failed");
                     $finish();
                 end
                 //
@@ -110,12 +110,14 @@ module UART_RX_tb;
                 # LP_CLK_CYCLE;
                 reset = 1;
                 # LP_CLK_CYCLE;
+                reset = 0;
+                # LP_CLK_CYCLE;
                 if ( error ) begin
-                    $display("Reset from Error state - Failed\n");
+                    $display("Reset from Error state - Failed");
                     $finish();
                 end
                 else begin
-                    $display("Reset from Error state - Pass\n");
+                    $display("Reset from Error state - Pass");
                 end
                 //
                 // Get into Regular mode
@@ -128,10 +130,10 @@ module UART_RX_tb;
                 //
                 send(8'b01010101, 1);
                 if( error ) begin
-                    $display("Error on stop bit - Pass\n");
+                    $display("Error on stop bit - Pass");
                 end
                 else begin
-                    $display("Error on stop bit - Failed\n");
+                    $display("Error on stop bit - Failed");
                     $finish();
                 end
                 //
@@ -141,12 +143,13 @@ module UART_RX_tb;
                 # LP_CLK_CYCLE;
                 reset = 1;
                 # LP_CLK_CYCLE;
+                reset = 0;
+                # LP_CLK_CYCLE;
                 serial_in = 1;
                 #(LP_X16_BAUD_CYCLE*200);
 
-                $random(LP_SEED);
-                for( j = 0; j < 10 ; j = j + 1) begin
-                    byte = $random();
+                for( j = 0; j < 15 ; j = j + 1) begin
+                    byte = j;
                     send( byte, 1'b0);
                 end
                 $finish();

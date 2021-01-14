@@ -57,7 +57,12 @@ module UART_RX #(
 
     // FSM next step
     always @(negedge CLK) begin
-        if (x16_BAUD) begin
+        if(reset) begin
+            rec_bit <= 0;
+            global_state <= S_WAIT;
+            counter <= 0;
+        end
+        else if (x16_BAUD) begin
             case(global_state) 
                 S_WAIT:
                 begin
@@ -149,14 +154,8 @@ module UART_RX #(
                 end
                 S_ERROR:
                 begin
-                    if(reset) begin
-                        global_state <= S_WAIT;
-                        counter <= 0;
-                    end
-                    else begin
-                        global_state <= S_ERROR;
-                        counter <= 0;
-                    end
+                    global_state <= S_ERROR;
+                    counter <= 0;
                 end
                 default
                 begin
