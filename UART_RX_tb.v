@@ -25,8 +25,10 @@
 module UART_RX_tb;
 	// Localparameters
         localparam LP_CLK_CYCLE = 10;
-	localparam LP_X16_BAUD_CYCLE = 20;
+	localparam LP_X16_BAUD_CYCLE = 90;
+        localparam LP_X16_DIV = LP_X16_BAUD_CYCLE/LP_CLK_CYCLE;
         localparam LP_BIT_CYCLE = 16*LP_X16_BAUD_CYCLE;	
+        localparam LP_SEED = 8982098;
 	// Inputs
 	reg serial_in;
 	reg x16_BAUD;
@@ -37,9 +39,13 @@ module UART_RX_tb;
 	wire valid;
 	wire error;
 
+    integer j = 0;
+        reg [7: 0] byte;
+
         task send;
             input [7:0] byte;
-            integer i = 0;
+            input error;
+            integer i ;
             begin
                 // Start bit 
                 serial_in = 0;
@@ -50,7 +56,12 @@ module UART_RX_tb;
                          #LP_BIT_CYCLE;
                 end
                 // Stop bit
-                serial_in = 1;
+                if (error) begin
+                    serial_in = 0;
+                end
+                else begin
+                    serial_in = 1;
+                end
                 #LP_BIT_CYCLE;
             end
         endtask
@@ -69,23 +80,81 @@ module UART_RX_tb;
 
 	initial begin
 		// Initialize Inputs
+                $display("Starting testbench\n");
 		serial_in = 0;
 		x16_BAUD = 1;
 		reset = 0;
                 CLK = 0;
 		// Wait 100 ns for global reset to finish
 		#50;
-                 
-		// Add stimulus here
+                // get into regular mode   
                 serial_in = 1;
                 #(LP_X16_BAUD_CYCLE*200);
-                send(8'b10100110);
+                // 
+                // error on start bit
+                //
+                serial_in = 0;
+                #LP_X16_BAUD_CYCLE;
+                serial_in = 1;
+                #LP_BIT_CYCLE;
+                if( error ) begin
+                    $display("Error on start bit - Pass\n");
+                end
+                else begin
+                    $display("Error on start bit - Failed\n");
+                    $finish();
+                end
+                //
+                // Check Error reset
+                //
+                # LP_CLK_CYCLE;
+                reset = 1;
+                # LP_CLK_CYCLE;
+                if ( error ) begin
+                    $display("Reset from Error state - Failed\n");
+                    $finish();
+                end
+                else begin
+                    $display("Reset from Error state - Pass\n");
+                end
+                //
+                // Get into Regular mode
+                //
+                serial_in = 1;
+                #(LP_X16_BAUD_CYCLE*200);
+                
+                //
+                // Error on stop bit
+                //
+                send(8'b01010101, 1);
+                if( error ) begin
+                    $display("Error on stop bit - Pass\n");
+                end
+                else begin
+                    $display("Error on stop bit - Failed\n");
+                    $finish();
+                end
+                //
+                // send random bytes
+                //
+
+                # LP_CLK_CYCLE;
+                reset = 1;
+                # LP_CLK_CYCLE;
+                serial_in = 1;
+                #(LP_X16_BAUD_CYCLE*200);
+
+                $random(LP_SEED);
+                for( j = 0; j < 10 ; j = j + 1) begin
+                    byte = $random();
+                    send( byte, 1'b0);
+                end
                 $finish();
 	end
-        localparam LP_x16_DIV = 2;
+        
         integer i = 0;
         always @(posedge CLK) begin
-            if ( i == LP_x16_DIV -1) begin
+            if ( i == LP_X16_DIV -1) begin
                 x16_BAUD = 1;
                 i =0;
             end
