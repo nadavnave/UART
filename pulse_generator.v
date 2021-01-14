@@ -10,8 +10,8 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module pulse_generator #(
-    parameter P_CLK_FREQ,
-    parameter P_BAUDRATE
+    parameter P_CLK_FREQ = 100000,
+    parameter P_BAUDRATE = 9600
 )(
     input CLK,
     output reg out
