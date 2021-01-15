@@ -138,15 +138,32 @@ module UART_RX_top_tb;
                 # LP_CLK_CYCLE;
                 data_in = 1;
                 #(LP_BIT_CYCLE*15);
-                for( j = 0; j < 15 ; j = j + 1) begin
+                for( j = 0; j < 16 ; j = j + 1) begin
                     byte = j;
                     send( byte, 1'b0);
                 end
                 $finish();
 	end
-        
+
+        integer i; 
+        initial begin
+            for( i = 0; i< 16 ; i = i + 1) begin
+                @(negedge fifo_empty);
+                display_next = 1;
+                # (LP_CLK_CYCLE * 13);
+                display_next = 0;
+                if ( { data_out_msd, data_out_lsd} == i) begin
+                    $display("byte %d is valid", i);
+                end
+                else begin
+                    $display("Error on bit %d", i);
+                end
+            end
+        end
+
         always begin
             #(LP_CLK_CYCLE/2) CLK = ~CLK;
         end
+
 endmodule
 

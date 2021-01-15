@@ -16,8 +16,11 @@ module pulse_generator #(
     input CLK,
     output reg out
 );
-    localparam LP_X16_DIV = P_CLK_FREQ/ P_BAUDRATE;
+    localparam LP_X16_DIV = P_CLK_FREQ/(16 * P_BAUDRATE);
     reg [ clog2(LP_X16_DIV) -1 : 0] counter;
+    initial begin
+        counter <= 0;
+    end
 
     always @(posedge CLK) begin
         if( counter == LP_X16_DIV - 1) begin

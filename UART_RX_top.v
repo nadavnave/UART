@@ -32,13 +32,13 @@ module UART_RX_top (
 
     localparam LP_DEBOUNCER_MIN_TH = 1;
     localparam LP_DEBOUNCER_MAX_TH = 10;
-    localparam LP_CLK_FREQ = 100000; 
-    localparam LP_BAUDRATE = 9600;
+    localparam LP_CLK_FREQ = 100000000; 
+    localparam LP_BAUDRATE = 1000000;
     
     wire debounced_reset;
     wire debounced_display_next;
     wire x16_baud;
-    wire uart_out;
+    wire[7:0]  uart_out;
     wire uart_valid;
     wire [7: 0] fifo_out;
     
@@ -49,7 +49,7 @@ module UART_RX_top (
     // ---------------------------------------------------------------------------
     Debouncer #(
         .P_MIN_TH(LP_DEBOUNCER_MIN_TH),
-        .P_MAN_TH(LP_DEBOUNCER_MAX_TH)
+        .P_MAX_TH(LP_DEBOUNCER_MAX_TH)
     ) Reset_Debouncer(
         .in(reset),
         .CLK(CLK),
@@ -58,7 +58,7 @@ module UART_RX_top (
 
     Debouncer #(
         .P_MIN_TH(LP_DEBOUNCER_MIN_TH),
-        .P_MAN_TH(LP_DEBOUNCER_MAX_TH)
+        .P_MAX_TH(LP_DEBOUNCER_MAX_TH)
     ) Display_Next_Debouncer (
         .in(display_next),
         .CLK(CLK),
